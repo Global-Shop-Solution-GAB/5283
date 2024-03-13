@@ -1,0 +1,244 @@
+Program.Sub.ScreenSU.Start
+Gui.Form..Create
+Gui.Form..Caption("Reason Code")
+Gui.Form..Size(7665,7500)
+Gui.Form..MinX(0)
+Gui.Form..MinY(0)
+Gui.Form..Position(0,0)
+Gui.Form..BackColor(-2147483633)
+Gui.Form..MousePointer(0)
+Gui.Form..Event(UnLoad,Form_UnLoad)
+Gui.Form.lbl1.Create(Label,"Reason",True,705,255,0,555,210,True,0,"Arial",8,-2147483633,0)
+Gui.Form.cmdSave.Create(Button)
+Gui.Form.cmdSave.Size(645,375)
+Gui.Form.cmdSave.Position(60,840)
+Gui.Form.cmdSave.Caption("Save")
+Gui.Form.cmdSave.Event(Click,cmdSave_Click)
+Gui.Form.cmdSave.TabStop(True)
+Gui.Form.cmdSave.TabIndex(3)
+Gui.Form.gsReason.Create(GsGridControl)
+Gui.Form.gsReason.Size(7425,5685)
+Gui.Form.gsReason.Position(75,1305)
+Gui.Form.gsReason.Event(RowCellClick,gsReason_RowCellClick)
+Gui.Form.gsReason.TabStop(True)
+Gui.Form.gsReason.TabIndex(4)
+Gui.Form.lbl2.Create(Label,"ID",True,360,255,0,75,210,True,0,"Arial",8,-2147483633,0)
+Gui.Form.txtID.Create(TextBox,"",True,420,300,0,75,435,True,0,"Arial",8,-2147483643,1)
+Gui.Form.txtID.MaxLength(3)
+Gui.Form.txtID.TabStop(True)
+Gui.Form.txtID.TabIndex(1)
+Gui.Form.txtReason.Create(TextBoxR)
+Gui.Form.txtReason.Size(6945,360)
+Gui.Form.txtReason.Position(570,405)
+Gui.Form.txtReason.MaxLength(200)
+Gui.Form.txtReason.TabStop(True)
+Gui.Form.txtReason.TabIndex(2)
+Program.Sub.ScreenSU.End
+
+Program.Sub.Preflight.Start
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+'BN, Nov 12, 2018
+'Customer: Acero
+
+'This project will add a reason code ID and description to the Open Quote Line dashboard to track reason for quotes won/loss/closed.
+'It is a modification of project 4310.
+'A Maintenance Program for reason codes is created and can be run from a custom menu item.
+'The Quote Line dashboard is launched from a custom menu item.
+'A Statistic tab is added to show the percentage of the reason codes with the cutoff Days specified in the dashboard.
+
+'This is the maitenance program for reason code for Quote loss.
+
+f.Intrinsic.Control.Try
+	v.Local.sError.Declare
+	
+	f.ODBC.Connection!conx.OpenCompanyConnection
+	f.Intrinsic.Control.CallSub("Bind_ReasonCode")
+	gui.Form..Show
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.String.Build("Project: {0}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}GAB Version: {5}}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	f.Intrinsic.Control.CallSub("Unload")
+F.Intrinsic.Control.EndTry
+
+Program.Sub.Main.End
+
+Program.Sub.Bind_ReasonCode.Start
+f.Intrinsic.Control.Try
+	v.Local.sError.Declare
+	
+	f.Intrinsic.Control.If(v.DataTable.R.Exists)
+		f.Data.DataTable.Close("R")
+	f.Intrinsic.Control.EndIf
+	f.Data.DataTable.CreateFromSQL("R","conx","Select ID,Reason from GCG_5283_Reason order by ID",True)
+	f.Data.DataTable.AddColumn("R","Delete","String","Delete")
+	gui.Form.gsReason.AddGridviewFromDatatable("RGV","R")
+	gui.Form.gsReason.MainView("RGV")	
+	f.Intrinsic.Control.CallSub("Format_Grid")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.String.Build("Project: {0}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}GAB Version: {5}}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	f.Intrinsic.Control.CallSub("Unload")
+F.Intrinsic.Control.EndTry
+Program.Sub.Bind_ReasonCode.End
+
+Program.Sub.UnLoad.Start
+f.Intrinsic.Control.Try
+	v.Local.sError.Declare
+
+	F.Intrinsic.Control.If(V.ODBC.conx.State,=,1)
+		F.ODBC.Connection!conx.close
+	F.Intrinsic.Control.EndIf
+	
+	f.Intrinsic.Control.End
+
+F.Intrinsic.Control.Catch
+	Function.Intrinsic.String.Build("Subroutine Error {0}{0}Subroutine: {1}{0}Error Occurred {2} with description {3}",V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.Intrinsic.Control.End	
+F.Intrinsic.Control.EndTry
+Program.Sub.UnLoad.End
+
+Program.Sub.Form_UnLoad.Start
+f.Intrinsic.Control.CallSub("Unload")
+Program.Sub.Form_UnLoad.End
+
+Program.Sub.gsReason_RowCellClick.Start
+f.Intrinsic.Control.Try
+	v.Local.sError.Declare
+	v.Local.sSQL.Declare
+
+	'If ID or Reason cell is clicked, bring the row to the textboxes
+	f.Intrinsic.Control.If(v.Args.Column,=,"ID",or,v.Args.Column,=,"Reason")
+		gui.Form.txtID.Text(v.DataTable.R(v.Args.RowIndex).ID!FieldValTrim)
+		gui.Form.txtReason.Text(v.DataTable.R(v.Args.RowIndex).Reason!FieldValTrim)
+	f.Intrinsic.Control.EndIf
+	
+	'If Delete cell is clicked, delete the row
+	f.Intrinsic.Control.If(v.Args.Column,=,"Delete")
+		f.Intrinsic.String.Build("Delete from GCG_5283_Reason where ID = '{0}'",v.DataTable.R(v.Args.RowIndex).ID!FieldValString,v.Local.sSQL)
+		f.ODBC.Connection!conx.Execute(v.Local.sSQL)
+		f.Intrinsic.Control.CallSub("Bind_ReasonCode")
+	f.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.String.Build("Project: {0}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}GAB Version: {5}}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	f.Intrinsic.Control.CallSub("Unload")
+F.Intrinsic.Control.EndTry
+Program.Sub.gsReason_RowCellClick.End
+
+Program.Sub.cmdSave_Click.Start
+f.Intrinsic.Control.Try
+	v.Local.sError.Declare
+	v.Local.sSQL.Declare
+	v.Local.sRet.Declare
+	v.Local.bExist.Declare
+	
+	'Validate ID and Reason
+	f.Intrinsic.Control.If(v.Screen.Form!txtID.Text.Trim,=,"")
+		f.Intrinsic.UI.Msgbox("ID is empty","Invalid ID")
+		f.Intrinsic.Control.ExitSub
+	f.Intrinsic.Control.EndIf
+	
+	f.Intrinsic.Control.If(v.Screen.Form!txtReason.Text.Trim,=,"")
+		f.Intrinsic.UI.Msgbox("Reason is empty","Invalid Reason")
+		f.Intrinsic.Control.ExitSub
+	f.Intrinsic.Control.EndIf
+	
+	f.Intrinsic.String.IsInString(v.Screen.Form!txtReason.Text.Trim,"---",True,v.Local.bExist)
+	f.Intrinsic.Control.If(v.Local.bExist)
+		f.Intrinsic.UI.Msgbox("--- is not allowed","Invalid Reason")
+		f.Intrinsic.Control.ExitSub
+	f.Intrinsic.Control.EndIf
+	
+		f.Intrinsic.String.IsInString(v.Screen.Form!txtReason.Text.Trim,"'",True,v.Local.bExist)
+	f.Intrinsic.Control.If(v.Local.bExist)
+		f.Intrinsic.UI.Msgbox("' is not allowed","Invalid Reason")
+		f.Intrinsic.Control.ExitSub
+	f.Intrinsic.Control.EndIf	
+	
+	'Look for the record of the same ID in DB, if yes, update, if no, insert
+	f.Intrinsic.String.Build("Select ID,Reason from GCG_5283_Reason where ID = '{0}'",v.Screen.Form!txtID.Text.Trim,v.Local.sSQL)
+	f.ODBC.Connection!conx.ExecuteAndReturn(v.Local.sSQL,v.Local.sRet)
+	f.Intrinsic.Control.If(v.Local.sRet,<>,"")
+		f.Intrinsic.String.Build("Update GCG_5283_Reason set Reason = '{0}' where ID = '{1}'",v.Screen.Form!txtReason.Text.Trim,v.Screen.Form!txtID.Text.Trim,v.Local.sSQL)
+	f.Intrinsic.Control.Else
+		f.Intrinsic.String.Build("Insert into GCG_5283_Reason (ID,Reason) values ('{0}','{1}')",v.Screen.Form!txtID.Text.Trim,v.Screen.Form!txtReason.Text.Trim,v.Local.sSQL)
+	f.Intrinsic.Control.EndIf	
+	f.ODBC.Connection!conx.Execute(v.Local.sSQL)	
+	f.Intrinsic.Control.CallSub("Bind_ReasonCode")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.String.Build("Project: {0}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}GAB Version: {5}}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	f.Intrinsic.Control.CallSub("Unload")
+F.Intrinsic.Control.EndTry
+Program.Sub.cmdSave_Click.End
+
+Program.Sub.Format_Grid.Start
+f.Intrinsic.Control.Try
+	v.Local.sError.Declare
+	
+	Gui.Form.gsReason.SuspendLayout()
+	
+	'General format for the grid
+	Gui.Form.gsReason.SetGridViewProperty("RGV","AllowSort",True)
+	Gui.Form.gsReason.SetGridViewProperty("RGV","AllowFilter",True)
+	Gui.Form.gsReason.SetGridViewProperty("RGV","OptionsFindAlwaysVisible",True)
+	Gui.Form.gsReason.SetGridViewProperty("RGV","EnableAppearanceOddRow",False)
+	Gui.Form.gsReason.SetGridViewProperty("RGV","OptionsViewShowAutoFilterRow",True)
+
+	''Width	
+	f.Intrinsic.Control.CallSub(FormatBulk,"GS","gsReason","GV","RGV","sInputColumns","ID","sProperty","Width","sWidth","30")
+	f.Intrinsic.Control.CallSub(FormatBulk,"GS","gsReason","GV","RGV","sInputColumns","Delete","sProperty","Width","sWidth","50")
+	'Header Font bold
+	f.Intrinsic.Control.CallSub(FormatBulk,"GS","gsReason","GV","RGV","sInputColumns","ID,Reason,Delete","sProperty","HeaderFontBold")
+	'For_Row_CellClick
+	f.Intrinsic.Control.CallSub(FormatBulk,"GS","gsReason","GV","RGV","sInputColumns","ID,Reason,Delete","sProperty","For_RowCell_Click")
+	'Editor button
+	gui.Form.gsReason.ColumnEdit("RGV","Delete","editorbutton","Delete")
+	
+	gui.Form.gsReason.ResumeLayout()
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.String.Build("Project: {0}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}GAB Version: {5}}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)	
+	f.Intrinsic.Control.CallSub("Unload")
+F.Intrinsic.Control.EndTry
+Program.Sub.Format_Grid.End
+
+Program.Sub.FormatBulk.Start
+f.Intrinsic.Control.Try
+	V.Local..BulkDeclareString(sError,sColumns,sHold)
+	v.Local..BulkDeclareLong(iCnt)
+	
+	f.Intrinsic.String.Split(v.Args.sInputColumns,",",v.Local.sColumns)
+	f.Intrinsic.Control.For(v.Local.iCnt,0,v.Local.sColumns.UBound,1)
+		F.Intrinsic.Control.SelectCase(v.Args.sProperty)
+			F.Intrinsic.Control.Case("Width")
+				gui.Form.[v.Args.GS].SetColumnProperty(v.Args.GV,v.Local.sColumns(v.Local.iCnt),"MinWidth",v.Args.sWidth)
+				gui.Form.[v.Args.GS].SetColumnProperty(v.Args.GV,v.Local.sColumns(v.Local.iCnt),"MaxWidth",v.Args.sWidth)
+			F.Intrinsic.Control.Case("HeaderFontBold")	
+				gui.Form.[v.Args.GS].SetColumnProperty(v.Args.GV,v.Local.sColumns(v.Local.iCnt),"HeaderFontBold",True)			
+			f.Intrinsic.Control.Case("CellBackColor")
+				gui.Form.[v.Args.GS].SetColumnProperty(v.Args.GV,v.Local.sColumns(v.Local.iCnt),"CellBackColor",v.Args.sColor)
+			f.Intrinsic.Control.Case("For_RowCell_Click")
+				gui.Form.[v.Args.GS].SetColumnProperty(v.Args.GV,v.Local.sColumns(v.Local.iCnt),"AllowEdit",False)	
+				gui.Form.[v.Args.GS].SetColumnProperty(v.Args.GV,v.Local.sColumns(v.Local.iCnt),"ReadOnly",True)
+			F.Intrinsic.Control.EndSelect		
+	f.Intrinsic.Control.Next(v.Local.iCnt)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.String.Build("Project: {0}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}GAB Version: {5}}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	f.Intrinsic.Control.CallSub("Unload")
+F.Intrinsic.Control.EndTry
+Program.Sub.FormatBulk.End
+
+
+
+
